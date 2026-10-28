@@ -157,7 +157,7 @@ The application should not be used as an official flood-warning system.
 **Murtaza Bin Abbas**  
 BS Remote Sensing & GIS  
 COMSATS University Islamabad  
-Course: Web GIS Applications — Assignment 2
+Course: Web GIS Application — Lab Assignment 2
 
 ## Conclusion
 
