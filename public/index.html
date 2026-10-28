@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nullah Leh Flood Watch | Rawalpindi &amp; Islamabad</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="splash"><div class="drop"></div>Loading flood data…</div>
+
+<header id="top">
+  <button id="btnSide" class="ib" aria-label="Open or close the sidebar" aria-expanded="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  <div class="brandx"><svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3C16 3 6 14 6 20a10 10 0 0020 0C26 14 16 3 16 3z" fill="#fff"/><path d="M10 21c2 2 4 2 6 0s4-2 6 0" stroke="#1769ff" stroke-width="2" fill="none" stroke-linecap="round"/></svg><div><h1>Nullah Leh Flood Watch</h1><small>Rawalpindi · Islamabad</small></div></div>
+  <div class="searchbox">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input id="q" type="search" placeholder="Search places, areas or types…" autocomplete="off" aria-label="Search places">
+    <ul id="sres" hidden role="listbox"></ul>
+  </div>
+  <div class="tools-r">
+    <div id="clock" aria-label="Pakistan time"><b id="clk">--:--:--</b><small id="dt"></small></div>
+    <span id="apiChip" class="chip"><i></i><span id="apiTxt">API…</span></span>
+    <button id="btnRefresh" class="ib" title="Refresh data from the API" aria-label="Refresh data from the API">↻</button>
+    <button id="btnTheme" aria-label="Toggle dark mode">Dark</button>
+    <button id="btnLogin">Log in</button>
+    <button id="btnAdd" class="primary">+ Report</button>
+  </div>
+</header>
+
+<aside id="side" class="glass">
+  <div id="rain" class="rain">Checking rainfall…</div>
+  <nav class="tabs" role="tablist"><button data-tab="places" class="on">Places</button><button data-tab="filters">Filters</button><button data-tab="data">Data</button><button data-tab="sources">Sources</button></nav>
+
+  <section id="pane-places" class="pane">
+    <div class="phead"><span id="listTitle"></span><button id="btnMe" class="mini">Near me</button><button id="btnFit" class="mini">Fit</button><button id="btnClr" class="mini" hidden>Clear nearby</button></div>
+    <ul id="list"><li class="empty">Loading records from PostgreSQL…</li></ul>
+  </section>
+
+  <section id="pane-filters" class="pane" hidden>
+    <div class="fl">Severity</div>
+    <div class="chips" id="chips" role="group" aria-label="Severity"><button data-sev="low" aria-pressed="false">Low</button><button data-sev="medium" aria-pressed="false">Medium</button><button data-sev="high" aria-pressed="false">High</button><button data-sev="severe" aria-pressed="false">Severe</button></div>
+    <div class="fl">Type</div>
+    <select id="f_category" aria-label="Type"><option value="">All types</option><option value="bridge">Bridge</option><option value="underpass">Underpass</option><option value="junction">Junction / chowk</option><option value="market">Market</option><option value="road">Road</option><option value="nullah">Nullah / culvert</option><option value="residential">Residential</option><option value="transit">Transit</option><option value="drain">Drain / gully</option></select>
+    <div class="row"><select id="f_source_type" aria-label="Source"><option value="">All sources</option><option value="official">Official</option><option value="student">Student</option></select>
+    <select id="f_status" aria-label="Status"><option value="">Any status</option><option value="reported">Reported</option><option value="under_review">Under review</option><option value="verified">Verified</option><option value="resolved">Resolved</option></select></div>
+    <div class="row"><select id="f_city" aria-label="City"><option value="">Both cities</option><option>Rawalpindi</option><option>Islamabad</option></select>
+    <select id="f_sort" aria-label="Sort"><option value="severity">Sort: severity</option><option value="newest">Sort: newest</option><option value="name">Sort: name</option></select></div>
+    <select id="f_nullah" aria-label="Distance from nullah"><option value="">Any distance from the nullah</option><option value="250">Within 250 m of the nullah</option><option value="500">Within 500 m</option><option value="1000">Within 1 km</option></select>
+    <div class="timeline"><b>EVENT TIMELINE</b> <span id="tlLbl">All dates</span>
+      <div class="row3"><button id="tlPlay">Play</button><input id="tl" type="range" min="0" max="0" value="0" aria-label="Show records up to this date"><button id="tlAll">All</button></div></div>
+    <button id="btnReset" class="link">Clear all filters</button>
+  </section>
+
+  <section id="pane-data" class="pane" hidden>
+    <div class="fl">Data check <span id="syncTxt"></span></div>
+    <div id="aboutStats"></div>
+    <details><summary>Nearby search</summary>
+      <label>Radius: <b id="radLbl">1000 m</b><input id="rad" type="range" min="250" max="3000" step="250" value="1000"></label>
+      <div class="row"><button id="btnNear">Map centre</button><button id="btnLoc">My location</button></div>
+      <p class="hint">Tip: right-click (or long-press) any spot on the map to search around it.</p></details>
+    <details><summary>Insights</summary><div id="ins"></div></details>
+    <details><summary>Verify and export</summary>
+      <pre id="sqlbox">SELECT source_type, COUNT(*) FROM flood_points GROUP BY source_type;</pre>
+      <div class="row"><button id="btnCopySql">Copy SQL</button><button id="btnAllGeo">All data (GeoJSON)</button></div>
+      <div class="row"><button id="btnGeo">Results GeoJSON</button><button id="btnCsv">Results CSV</button></div></details>
+  </section>
+
+  <section id="pane-sources" class="pane" hidden>
+    <div class="fl">Sources and attribution</div>
+    <p><b>Data extent:</b> <span id="bbox">–</span>. Distances are straight-line (geodesic) values calculated by PostGIS.</p>
+    <p>The map shows what has been recorded in this project's database. Official references are approximate locations of widely reported flood-prone sites; student observations stay unverified until an admin verifies them. Zones and the nullah centreline are indicative study shapes, not an official hazard map.</p>
+    <p>Data is read live from the API (PostgreSQL / PostGIS, Express). Basemaps: © OpenStreetMap contributors (ODbL), © CARTO, imagery © Esri, terrain © OpenTopoMap (CC-BY-SA). Rainfall: Open-Meteo (indicative). Built with Leaflet.</p>
+  </section>
+</aside>
+
+<main id="map" aria-label="Flood map"></main>
+<footer id="foot"><span class="fcredit">Leaflet | <span id="credit"></span></span><b>@SheikhMurtazabinAbbas</b><span class="fhud"><span id="coord">Move the cursor over the map</span> · Zoom <b id="zoomLv"></b></span></footer>
+<div id="toast" role="status"></div>
+
+<dialog id="dlg">
+  <form id="frm" method="dialog">
+    <h2 id="dlgTitle">Report a flood point</h2>
+    <input type="hidden" id="id">
+    <label>Name <input id="name" required minlength="3" maxlength="120"></label>
+    <label>Type <select id="category" required><option value="bridge">Bridge</option><option value="underpass">Underpass</option><option value="junction">Junction / chowk</option><option value="market">Market</option><option value="road">Road</option><option value="nullah">Nullah / culvert</option><option value="residential">Residential</option><option value="transit">Transit</option><option value="drain">Drain / gully</option></select></label>
+    <div class="row">
+      <label>City <select id="city" required><option>Rawalpindi</option><option>Islamabad</option></select></label>
+      <label>Area <input id="area" required minlength="2" maxlength="80"></label>
+    </div>
+    <div class="row">
+      <label>Severity <select id="severity" required><option>low</option><option selected>medium</option><option>high</option><option>severe</option></select></label>
+      <label>Status <select id="status"><option value="reported">Reported</option><option value="under_review">Under review</option><option value="verified">Verified (admin)</option><option value="resolved">Resolved</option></select></label>
+    </div>
+    <label id="srcWrap">Source <select id="source_type"><option value="student">Student</option><option value="official">Official</option></select></label>
+    <label>What did you see? <textarea id="description" maxlength="500" rows="3"></textarea></label>
+    <div class="row">
+      <label>Latitude <input id="lat" type="number" step="any" min="23.5" max="37.5" required></label>
+      <label>Longitude <input id="lng" type="number" step="any" min="60.5" max="77.5" required></label>
+    </div>
+    <div class="row">
+      <label>Your name <input id="reported_by" minlength="2" maxlength="60" placeholder="anonymous"></label>
+      <label>Observed on <input id="observed_at" type="date"></label>
+    </div>
+    <p id="formErr" class="err" role="alert"></p>
+    <div class="row end">
+      <button type="button" id="btnDel" class="danger" hidden>Delete</button>
+      <button type="button" id="btnCancel">Cancel</button>
+      <button type="submit" class="primary" id="btnSave">Save point</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgObs">
+  <form id="frmObs" method="dialog">
+    <h2>Add reading (with optional photo)</h2>
+    <input type="hidden" id="o_id">
+    <label>Water depth (cm) <input id="o_depth" type="number" min="0" max="500" step="1" required></label>
+    <label>Note <input id="o_note" maxlength="300"></label>
+    <label>Photo (optional, no people or faces) <input id="o_photo" type="file" accept="image/*"></label>
+    <label>Your name <input id="o_by" minlength="2" maxlength="60" required></label>
+    <p id="obsErr" class="err" role="alert"></p>
+    <div class="row end"><button type="button" id="obsCancel">Cancel</button><button type="submit" class="primary">Save reading</button></div>
+  </form>
+</dialog>
+<dialog id="dlgLogin"><form id="frmLogin" method="dialog"><h2>Log in</h2>
+  <p class="hint">Enter your editor or admin access token to add or update records. Browsing the map needs no login.</p>
+  <label>Access token <input id="tokIn" type="password" autocomplete="off" required></label>
+  <p id="loginErr" class="err" role="alert"></p>
+  <div class="row end"><button type="button" id="loginCancel">Cancel</button><button type="submit" class="primary">Log in</button></div></form></dialog>
+<dialog id="dlgConfirm"><form method="dialog"><h2>Please confirm</h2><p id="cfMsg"></p>
+  <div class="row end"><button value="no">Cancel</button><button value="yes" class="primary">Yes, continue</button></div></form></dialog>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
